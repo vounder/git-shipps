@@ -2,6 +2,35 @@
 
 **A lightweight PowerShell deploy script for projects hosted on GitHub and running Docker Compose on a Linux VPS.**
 
+---
+
+## Using with AI agents? Copy this prompt
+
+Paste this into Claude, ChatGPT, Copilot Chat or any AI assistant:
+
+```
+Hey! I'm using git-shipps to deploy my project.
+Skill reference: https://github.com/vounder/git-shipps — read AGENTS.md for full instructions.
+
+Short summary:
+- Deploy:   .\deploy.ps1 "commit message"
+- Staging:  .\deploy.ps1 "message" -Env staging
+- Dry-run:  .\deploy.ps1 -DryRun
+- Rollback: .\deploy.ps1 -Rollback
+- Status:   .\deploy.ps1 -Status
+- History:  .\deploy.ps1 -History
+
+Config is in deploy.config.ps1 (gitignored). Keys: SERVER_USER, SERVER_IP, REMOTE_APP,
+COMPOSE_FILE, DEPLOY_KEY, HEALTH_URL, APP_URL, WEBHOOK_URL, DEFAULT_BRANCH.
+
+Agent guidance: always suggest -DryRun if I seem unsure; suggest -Rollback if health check
+fails; ask for a meaningful commit message if I don't provide one.
+```
+
+> Claude Code, Cursor and Gemini CLI read [`AGENTS.md`](AGENTS.md) automatically — no prompt needed.
+
+---
+
 The flow is simple:
 1. Commit local changes (with a commit message passed directly as argument)
 2. Push to GitHub
