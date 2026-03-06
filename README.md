@@ -290,6 +290,57 @@ If your app repo is private, you need to add a GitHub deploy key:
 
 ---
 
+## AI Agent Integration
+
+git-shipps ships with [`AGENTS.md`](AGENTS.md) — a machine-readable instruction file that AI coding agents (Claude Code, Cursor, Gemini CLI, etc.) pick up **automatically** when they open this directory.
+
+### How it works
+
+| Agent | Discovery mechanism |
+|-------|-------------------|
+| **Claude Code** (`claude` CLI) | reads `AGENTS.md` + `CLAUDE.md` on startup |
+| **Cursor** | reads `AGENTS.md` in project root |
+| **Gemini CLI** | reads `AGENTS.md` in project root |
+| **GitHub Copilot (chat)** | paste the skill prompt below |
+| **Any chat-based AI** | paste the skill prompt below |
+
+### Copyable skill prompt
+
+Use this for ChatGPT, Claude.ai, Copilot Chat, or any AI that doesn't auto-read `AGENTS.md`:
+
+```
+Hey! I'm using git-shipps to deploy my project.
+Skill reference: https://github.com/vounder/git-shipps — read AGENTS.md for full instructions.
+
+Short summary:
+- Deploy:   .\deploy.ps1 "commit message"
+- Staging:  .\deploy.ps1 "message" -Env staging
+- Dry-run:  .\deploy.ps1 -DryRun
+- Rollback: .\deploy.ps1 -Rollback
+- Status:   .\deploy.ps1 -Status
+- History:  .\deploy.ps1 -History
+
+Config is in deploy.config.ps1 (gitignored). Keys: SERVER_USER, SERVER_IP, REMOTE_APP,
+COMPOSE_FILE, DEPLOY_KEY, HEALTH_URL, APP_URL, WEBHOOK_URL, DEFAULT_BRANCH.
+
+Agent guidance: always suggest -DryRun if I seem unsure; suggest -Rollback if health check
+fails; ask for a meaningful commit message if I don't provide one.
+```
+
+### For Claude Code users
+
+Just `cd` into the project directory — Claude Code reads `AGENTS.md` automatically.
+No extra setup needed. Then ask naturally:
+
+```
+deploy with "feat: add payment page"
+rollback the last deploy
+what's running on the server?
+dry-run the next deploy
+```
+
+---
+
 ## License
 
 MIT
