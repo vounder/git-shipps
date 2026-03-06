@@ -50,6 +50,7 @@ $COMPOSE_FILE = "docker-compose.prod.yml"
 $DEPLOY_KEY   = "$HOME\.ssh\deploy_key"
 $HEALTH_URL   = "http://127.0.0.1:3000/health"   # optional
 $APP_URL      = "https://example.com"             # optional
+$WEBHOOK_URL  = ""                                # optional — Discord/Slack
 ```
 
 > `deploy.config.ps1` is in `.gitignore` — it will never be committed.
@@ -90,16 +91,27 @@ nano /root/myapp/.env
 ## Usage
 
 ```powershell
-# With commit message (recommended — shows clearly in git log)
+# Deploy with commit message
 .\deploy.ps1 "feat: add user profile page"
 .\deploy.ps1 "fix: correct payment calculation"
-.\deploy.ps1 "chore: update dependencies"
 
-# Without — prompts interactively
-.\deploy.ps1
+# Deploy to a specific environment (loads deploy.config.staging.ps1)
+.\deploy.ps1 "feat: test on staging" -Env staging
+
+# Preview what would happen — no changes made
+.\deploy.ps1 -DryRun
+
+# Roll back to the previous deployment
+.\deploy.ps1 -Rollback
+
+# Show deployment history (last 20 deploys)
+.\deploy.ps1 -History
+
+# Show container status & logs on the VPS
+.\deploy.ps1 -Status
 ```
 
-### What happens
+### What happens during a deploy
 
 ```
 >> Checking server connection (1.2.3.4)...
@@ -133,6 +145,9 @@ nano /root/myapp/.env
   Useful commands:
   ssh root@1.2.3.4 'docker compose -f /root/myapp/docker-compose.prod.yml logs --tail 50'
   ssh root@1.2.3.4 'docker ps'
+  .\deploy.ps1 -Rollback    # revert to previous deploy
+  .\deploy.ps1 -History     # show deployment log
+  .\deploy.ps1 -Status      # container status on VPS
 ```
 
 ---
@@ -145,6 +160,107 @@ nano /root/myapp/.env
 | `deploy.config.ps1`           | Your config (gitignored, created from example)                |
 | `deploy.config.example.ps1`   | Config template to copy and fill in                           |
 | `setup-deploy-key.ps1`        | One-time setup: SSH key + VPS clone                           |
+| `hooks/pre-deploy.ps1`        | Optional: runs before deploy (tests, linting, etc.)           |
+| `hooks/post-deploy.ps1`       | Optional: runs after deploy (cache clear, notifications, etc.)|
+
+---
+
+## Features
+
+### Multi-Environment
+
+Create separate configs for each environment:
+
+```powershell
+cp deploy.config.example.ps1 deploy.config.staging.ps1
+cp deploy.config.example.ps1 deploy.config.prod.ps1
+```
+
+Deploy to a specific environment:
+
+```powershell
+.\deploy.ps1 "feat: new feature" -Env staging
+.\deploy.ps1 "feat: new feature" -Env prod
+```
+
+### Rollback
+
+Before every deploy, git-shipps saves the current commit hash on the VPS as a rollback point. To revert:
+
+```powershell
+.\deploy.ps1 -Rollback
+```
+
+This checks out the previous commit on the VPS and rebuilds Docker containers.
+
+### Deployment History
+
+Every deploy is logged to `~/.git-shipps/history.log`. View the last 20 entries:
+
+```powershell
+.\deploy.ps1 -History
+```
+
+Output:
+```
+  Deployment History (last 20)
+  ═══════════════════════════════════════════════════════════
+  [v] 2026-03-06 14:22:01   a3f1b2c  feat: add new page  (38s)
+  [v] 2026-03-05 09:11:44   d9e8c7f  fix: payment calc  (41s)
+  [!] 2026-03-04 18:03:22   b1a2c3d  chore: update deps  (55s)
+```
+
+### Dry-Run
+
+Preview exactly what would happen without making any changes:
+
+```powershell
+.\deploy.ps1 "feat: test" -DryRun
+```
+
+### Status Dashboard
+
+Check container health without SSHing manually:
+
+```powershell
+.\deploy.ps1 -Status
+```
+
+Shows: running containers, last 20 log lines, disk usage, memory.
+
+### Webhook Notifications
+
+Add a Discord or Slack webhook to `deploy.config.ps1`:
+
+```powershell
+$WEBHOOK_URL = "https://discord.com/api/webhooks/..."
+```
+
+After each deploy, a message is posted:
+```
+✅ git-shipps — Deploy to 1.2.3.4
+> a3f1b2c feat: add new page
+```
+
+### Pre/Post-Deploy Hooks
+
+Create optional hook scripts (not committed, gitignored by pattern):
+
+```
+hooks/pre-deploy.ps1   # runs before the VPS pull — exit 1 aborts the deploy
+hooks/post-deploy.ps1  # runs after containers are up — failure is logged but non-fatal
+```
+
+Example `hooks/pre-deploy.ps1`:
+```powershell
+# Run tests before deploying
+npm test
+if ($LASTEXITCODE -ne 0) { exit 1 }
+```
+
+### Deploy Lock
+
+git-shipps prevents concurrent deployments by placing a lock file on the VPS. If another deploy is running, the second one fails immediately with a clear message. The lock is automatically released on completion or after 10 minutes (stale lock timeout).
 
 ---
 
@@ -170,7 +286,7 @@ If your app repo is private, you need to add a GitHub deploy key:
 - **Keep commit messages meaningful** — they show up directly in your git log and make it easy to trace what was deployed when.
 - **Health check URL** — point `$HEALTH_URL` to any endpoint in your app that returns HTTP 200 (e.g. `/api/health`, `/ping`).
 - **Zero-downtime** — this script uses `docker compose up -d --build` which replaces containers with minimal downtime. For true zero-downtime, consider adding a reverse proxy (nginx/Traefik) in front.
-- **Multiple environments** — create `deploy.config.staging.ps1` and `deploy.config.prod.ps1`, then load them manually or add a `-Config` parameter.
+- **Multiple environments** — create `deploy.config.staging.ps1` and `deploy.config.prod.ps1`, then use `.\deploy.ps1 -Env staging`.
 
 ---
 

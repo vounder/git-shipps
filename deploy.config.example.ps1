@@ -31,3 +31,9 @@ $APP_URL = "https://example.com"
 # ── Git Branch ────────────────────────────────────────────────────────────────
 # Branch to push and pull. Defaults to "main" if not set.
 $DEFAULT_BRANCH = "main"
+
+# ── Webhook Notification (optional) ──────────────────────────────────────────
+# Discord or Slack incoming webhook URL. Set to "" to disable.
+# Discord:  https://discord.com/api/webhooks/<id>/<token>
+# Slack:    https://hooks.slack.com/services/<id>/<token>
+$WEBHOOK_URL = ""
